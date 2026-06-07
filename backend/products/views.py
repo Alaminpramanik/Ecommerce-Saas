@@ -7,7 +7,10 @@ class ProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
     
     def perform_create(self, serializer):
-        serializer.save(merchant=self.request.user)
+        product = serializer.save(merchant=self.request.user)
+        # Trigger social media posting in background
+        from social.tasks import post_product_to_social_task
+        post_product_to_social_task.delay(product.id)
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.all()

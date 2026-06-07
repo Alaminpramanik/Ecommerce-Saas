@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'parcels',
     'chat',
     'analytics',
+    'social',
 ]
 
 MIDDLEWARE = [
