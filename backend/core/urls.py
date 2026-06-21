@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from chat.facebook import webhook as facebook_webhook
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -25,6 +26,7 @@ urlpatterns = [
     path('api/products/', include('products.urls')),
     path('api/orders/', include('orders.urls')),
     path('api/analytics/', include('analytics.urls')),
+    path('api/facebook/webhook/', facebook_webhook, name='facebook_webhook'),
 ]
 
 if settings.DEBUG:

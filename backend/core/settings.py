@@ -47,6 +47,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -99,9 +100,13 @@ USE_TZ = True
 
 # Static & Media
 STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = 'media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Let WhiteNoise serve static files (incl. Django admin) under daphne/ASGI.
+# USE_FINDERS lets it serve straight from app static dirs without collectstatic in dev.
+WHITENOISE_USE_FINDERS = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -130,7 +135,9 @@ CORS_ALLOW_ALL_ORIGINS = True
 # Channels/Layer
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        # PubSub layer is more robust for chat/websockets — avoids the blocking-read
+        # "Timeout reading from redis" errors the polling-based core layer can throw.
+        'BACKEND': 'channels_redis.pubsub.RedisPubSubChannelLayer',
         'CONFIG': {
             "hosts": [env('REDIS_URL', default='redis://127.0.0.1:6379/1')],
         },
@@ -143,6 +150,13 @@ CELERY_RESULT_BACKEND = env('REDIS_URL', default='redis://127.0.0.1:6379/1')
 
 # AI API Keys (Placeholder)
 GEMINI_API_KEY = env('GEMINI_API_KEY', default='')
+
+# Facebook Page integration (auto-reply to comments)
+FB_VERIFY_TOKEN = env('FB_VERIFY_TOKEN', default='')
+FB_PAGE_ACCESS_TOKEN = env('FB_PAGE_ACCESS_TOKEN', default='')
+FB_APP_SECRET = env('FB_APP_SECRET', default='')
+FB_PAGE_ID = env('FB_PAGE_ID', default='')
+IG_USER_ID = env('IG_USER_ID', default='')
 
 # Parcel API Settings
 PATHAO_CLIENT_ID = env('PATHAO_CLIENT_ID', default='')

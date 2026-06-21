@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #000000;
+    --color-accent: #0d9488;
+    --color-accent-hover: #0f766e;
+    --color-orange: #ea580c;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-white text-gray-900 antialiased;
+  }
+
+  * {
+    @apply box-border;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-black text-white px-6 py-3 font-semibold text-sm tracking-wide
+    hover:bg-gray-800 active:scale-95 transition-all duration-200 rounded-none;
+  }
+
+  .btn-accent {
+    @apply bg-teal-600 text-white px-6 py-3 font-semibold text-sm tracking-wide
+    hover:bg-teal-700 active:scale-95 transition-all duration-200 rounded-none;
+  }
+
+  .btn-outline {
+    @apply border-2 border-black text-black px-6 py-3 font-semibold text-sm tracking-wide
+    hover:bg-black hover:text-white active:scale-95 transition-all duration-200 rounded-none;
+  }
+
+  .btn-ghost {
+    @apply text-gray-700 px-4 py-2 font-medium text-sm
+    hover:text-black transition-colors duration-200;
+  }
+
+  .input-field {
+    @apply w-full border border-gray-300 px-4 py-3 text-sm text-gray-900
+    focus:outline-none focus:border-black transition-colors duration-200 bg-white;
+  }
+
+  .badge-sale {
+    @apply bg-orange-500 text-white text-xs font-bold px-2 py-0.5 uppercase tracking-wider;
+  }
+
+  .badge-new {
+    @apply bg-teal-600 text-white text-xs font-bold px-2 py-0.5 uppercase tracking-wider;
+  }
+
+  .badge-hot {
+    @apply bg-black text-white text-xs font-bold px-2 py-0.5 uppercase tracking-wider;
+  }
+
+  .section-title {
+    @apply text-3xl md:text-4xl font-bold text-gray-900 tracking-tight;
+  }
+
+  .section-subtitle {
+    @apply text-gray-500 mt-2 text-base;
+  }
+}
+
+@layer utilities {
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Page transitions */
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-transition {
+  animation: pageIn 0.35s ease-out;
+}

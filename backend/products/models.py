@@ -18,6 +18,8 @@ class Product(models.Model):
     original_price = models.DecimalField(max_digits=10, decimal_places=2)
     sale_price = models.DecimalField(max_digits=10, decimal_places=2)
     cost_price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Purchase price for profit calculation")
+    last_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,
+                                     help_text="Merchant's final/last selling price — internal accounting only")
     
     # Inventory
     stock_quantity = models.PositiveIntegerField(default=0)
@@ -29,6 +31,10 @@ class Product(models.Model):
     
     # AI Metadata
     ai_extracted_data = models.JSONField(null=True, blank=True)
+
+    # Facebook: link this product to its Page post so comments can be auto-answered
+    fb_post_id = models.CharField(max_length=120, blank=True, null=True,
+                                  help_text="Facebook post ID this product is advertised in")
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
