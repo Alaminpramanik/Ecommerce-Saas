@@ -7,6 +7,7 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 from orders.models import Order, OrderItem
 from products.models import Product
+from accounts.permissions import CanViewAnalytics
 
 # Orders that count toward realized/expected revenue (everything except cancelled/returned).
 ACTIVE_STATUSES = ['pending', 'picked', 'in_transit', 'delivered']
@@ -34,8 +35,6 @@ class SalesProfitView(APIView):
     def get(self, request):
         total_sales = Order.objects.filter(status='delivered').aggregate(total=Sum('total_price'))['total'] or 0
 
-        # Simplified profit calculation
-        # Profit = (sale_price - cost_price) * quantity
         profit = OrderItem.objects.filter(order__status='delivered').aggregate(
             total_profit=Sum((F('price') - F('product__cost_price')) * F('quantity'))
         )['total_profit'] or 0
@@ -49,12 +48,21 @@ class SalesProfitView(APIView):
 
 class MerchantDashboardView(APIView):
     """Per-merchant breakdown: each of the merchant's products with stock, units sold,
-    revenue and profit, plus an overall summary."""
-    permission_classes = [IsAuthenticated]
+    revenue and profit, plus an overall summary.
+    Accessible by: merchant, manager employee, viewer employee."""
+    permission_classes = [IsAuthenticated, CanViewAnalytics]
+
+    def _get_merchant(self, user):
+        """Return the merchant whose data to show."""
+        if user.is_merchant or user.is_superuser:
+            return user
+        if hasattr(user, 'employee_profile') and user.employee_profile.is_active:
+            return user.employee_profile.store.merchant
+        return user
 
     def get(self, request):
-        user = request.user
-        products = Product.objects.filter(merchant=user).order_by('-created_at')
+        merchant = self._get_merchant(request.user)
+        products = Product.objects.filter(merchant=merchant).order_by('-created_at')
 
         rows = []
         total_revenue = 0
@@ -93,8 +101,7 @@ class MerchantDashboardView(APIView):
             total_stock += p.stock_quantity
             total_units += units
 
-        # Time-based sales & profit across ALL of this merchant's products.
-        items = OrderItem.objects.filter(product__merchant=user, order__status__in=ACTIVE_STATUSES)
+        items = OrderItem.objects.filter(product__merchant=merchant, order__status__in=ACTIVE_STATUSES)
         today = timezone.localtime().date()
         today_items = items.filter(order__created_at__date=today)
         month_items = items.filter(order__created_at__year=today.year, order__created_at__month=today.month)

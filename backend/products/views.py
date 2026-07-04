@@ -3,42 +3,52 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Product, Category, ProductImage
 from .serializers import ProductSerializer, CategorySerializer, ProductImageSerializer
+from accounts.permissions import CanManageProducts
 
 
-class IsMerchantOrReadOnly(permissions.BasePermission):
-    """Reads are open to everyone; writes require an authenticated merchant account."""
-    message = 'Only merchant accounts can manage products.'
-
-    def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        user = request.user
-        return bool(user and user.is_authenticated and (user.is_merchant or user.is_superuser))
+def _can_edit_product(user, product):
+    """True if user is allowed to modify this specific product."""
+    if user.is_superuser or product.merchant_id == user.id:
+        return True
+    if hasattr(user, 'employee_profile') and user.employee_profile.is_active:
+        emp = user.employee_profile
+        if emp.role in ('manager', 'product_editor'):
+            try:
+                return product.merchant.store == emp.store
+            except Exception:
+                return False
+    return False
 
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
-    """Only the merchant who owns a product may modify or delete it."""
+    """Only the owning merchant or eligible employee may modify a product."""
 
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
-        return obj.merchant_id == request.user.id or request.user.is_superuser
+        return _can_edit_product(request.user, obj)
 
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    permission_classes = [IsMerchantOrReadOnly, IsOwnerOrReadOnly]
+    permission_classes = [CanManageProducts, IsOwnerOrReadOnly]
+
+    def _get_merchant(self):
+        user = self.request.user
+        if user.is_merchant or user.is_superuser:
+            return user
+        if hasattr(user, 'employee_profile') and user.employee_profile.is_active:
+            return user.employee_profile.store.merchant
+        return user
 
     def perform_create(self, serializer):
-        serializer.save(merchant=self.request.user)
+        serializer.save(merchant=self._get_merchant())
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def upload_image(self, request, pk=None):
-        if not (request.user.is_merchant or request.user.is_superuser):
-            return Response({'detail': 'Only merchant accounts can manage products.'}, status=status.HTTP_403_FORBIDDEN)
         product = self.get_object()
-        if product.merchant_id != request.user.id and not request.user.is_superuser:
+        if not _can_edit_product(request.user, product):
             return Response({'detail': 'Not allowed.'}, status=status.HTTP_403_FORBIDDEN)
         file = request.FILES.get('image')
         if not file:
@@ -46,7 +56,6 @@ class ProductViewSet(viewsets.ModelViewSet):
         image = ProductImage.objects.create(
             product=product, image=file, is_feature=not product.images.exists()
         )
-        # Auto-post to Facebook + Instagram the first time an image is added (once per product).
         if not product.fb_post_id:
             from chat.tasks import auto_post_product_task
             public_url = request.build_absolute_uri(image.image.url)
@@ -59,10 +68,8 @@ class ProductViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def add_stock(self, request, pk=None):
         """Restock an existing product by adding to its current stock quantity."""
-        if not (request.user.is_merchant or request.user.is_superuser):
-            return Response({'detail': 'Only merchant accounts can manage products.'}, status=status.HTTP_403_FORBIDDEN)
         product = self.get_object()
-        if product.merchant_id != request.user.id and not request.user.is_superuser:
+        if not _can_edit_product(request.user, product):
             return Response({'detail': 'Not allowed.'}, status=status.HTTP_403_FORBIDDEN)
         try:
             qty = int(request.data.get('quantity', 0))
@@ -78,4 +85,4 @@ class ProductViewSet(viewsets.ModelViewSet):
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [IsMerchantOrReadOnly]
+    permission_classes = [CanManageProducts]
