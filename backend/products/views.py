@@ -66,6 +66,22 @@ class ProductViewSet(viewsets.ModelViewSet):
         )
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def upload_hero_image(self, request, pk=None):
+        """Set the transparent-background cutout used only by the homepage hero slider."""
+        product = self.get_object()
+        if not _can_edit_product(request.user, product):
+            return Response({'detail': 'Not allowed.'}, status=status.HTTP_403_FORBIDDEN)
+        file = request.FILES.get('image')
+        if not file:
+            return Response({'detail': 'No image provided.'}, status=status.HTTP_400_BAD_REQUEST)
+        product.hero_image = file
+        product.save(update_fields=['hero_image', 'updated_at'])
+        return Response(
+            ProductSerializer(product, context={'request': request}).data,
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def add_stock(self, request, pk=None):
         """Restock an existing product by adding to its current stock quantity."""
         product = self.get_object()

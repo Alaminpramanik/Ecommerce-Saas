@@ -35,7 +35,11 @@ class Product(models.Model):
     # Facebook: link this product to its Page post so comments can be auto-answered
     fb_post_id = models.CharField(max_length=120, blank=True, null=True,
                                   help_text="Facebook post ID this product is advertised in")
-    
+
+    # Separate transparent-background cutout used only by the homepage hero slider —
+    # distinct from the regular gallery photos (ProductImage) shown everywhere else.
+    hero_image = models.ImageField(upload_to='product_hero_images/', null=True, blank=True)
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

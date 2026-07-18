@@ -41,26 +41,29 @@ class IsMerchantOnly(permissions.BasePermission):
 
 
 class CanManageProducts(permissions.BasePermission):
-    """Merchant, manager, or product_editor employee."""
+    """Anyone (including anonymous visitors) can browse products/categories.
+    Only merchant, manager, or product_editor employees can write."""
     message = 'You do not have permission to manage products.'
 
     def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
         if request.method in permissions.SAFE_METHODS:
             return True
+        if not request.user or not request.user.is_authenticated:
+            return False
         return has_role(request.user, 'manager', 'product_editor')
 
 
 class CanManageOrders(permissions.BasePermission):
-    """Merchant, manager, or order_handler employee."""
+    """Any authenticated user can view/create their own orders (scoped in the
+    view's get_queryset/perform_create). Updating or deleting an order is
+    restricted to merchant, manager, or order_handler employees."""
     message = 'You do not have permission to manage orders.'
 
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        if request.method in permissions.SAFE_METHODS:
-            return has_role(request.user, 'manager', 'order_handler', 'viewer')
+        if request.method in permissions.SAFE_METHODS or request.method == 'POST':
+            return True
         return has_role(request.user, 'manager', 'order_handler')
 
 

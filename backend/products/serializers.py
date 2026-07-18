@@ -18,7 +18,7 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = '__all__'
-        read_only_fields = ('merchant', 'sold_quantity', 'ai_extracted_data')
+        read_only_fields = ('merchant', 'sold_quantity', 'ai_extracted_data', 'hero_image')
         # cost_price and last_price are merchant accounting fields — accept on write, never expose publicly.
         extra_kwargs = {
             'cost_price': {'write_only': True},
